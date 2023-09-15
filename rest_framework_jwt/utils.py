@@ -21,7 +21,8 @@ def jwt_get_secret_key(payload=None):
         - password is changed
         - etc.
     """
-    if api_settings.JWT_GET_USER_SECRET_KEY:
+    # Note: Don't support the user based secret key
+    if False and api_settings.JWT_GET_USER_SECRET_KEY:
         User = get_user_model()  # noqa: N806
         user = User.objects.get(pk=payload.get('user_id'))
         key = str(api_settings.JWT_GET_USER_SECRET_KEY(user))
@@ -90,9 +91,9 @@ def jwt_get_username_from_payload_handler(payload):
 def jwt_encode_handler(payload):
     key = api_settings.JWT_PRIVATE_KEY or jwt_get_secret_key(payload)
     return jwt.encode(
-        payload,
-        key,
-        api_settings.JWT_ALGORITHM
+        payload=payload,
+        key=key,
+        algorithm=api_settings.JWT_ALGORITHM
     ).decode('utf-8')
 
 
@@ -101,17 +102,18 @@ def jwt_decode_handler(token):
         'verify_exp': api_settings.JWT_VERIFY_EXPIRATION,
     }
     # get user from token, BEFORE verification, to get user secret key
-    unverified_payload = jwt.decode(token, None, False)
-    secret_key = jwt_get_secret_key(unverified_payload)
+    # unverified_payload = jwt.decode(token, None, False)
+    # secret_key = jwt_get_secret_key(unverified_payload)
+    secret_key = jwt_get_secret_key()
     return jwt.decode(
-        token,
-        api_settings.JWT_PUBLIC_KEY or secret_key,
-        api_settings.JWT_VERIFY,
+        jwt=token,
+        key=api_settings.JWT_PUBLIC_KEY or secret_key,
+        algorithms=[api_settings.JWT_ALGORITHM],
         options=options,
+        verify=api_settings.JWT_VERIFY,
         leeway=api_settings.JWT_LEEWAY,
         audience=api_settings.JWT_AUDIENCE,
         issuer=api_settings.JWT_ISSUER,
-        algorithms=[api_settings.JWT_ALGORITHM]
     )
 
 
